@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rgw-usage-exporter
+  labels:
+    app: rgw-usage-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rgw-usage-exporter
+  template:
+    metadata:
+      labels:
+        app: rgw-usage-exporter
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+      containers:
+      # Web server: serves the metrics file over HTTP for Prometheus to scrape
+      - name: web
+        image: python:latest
+        command: ["python", "-u", "-c"]
+        args:
+        - |
+          from http.server import HTTPServer, BaseHTTPRequestHandler
+
+          class Handler(BaseHTTPRequestHandler):
+              def do_GET(self):
+                  try:
+                      with open("/metrics/metrics.prom") as f:
+                          data = f.read()
+                      self.send_response(200)
+                      self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+                      self.end_headers()
+                      self.wfile.write(data.encode())
+                  except FileNotFoundError:
+                      self.send_response(503)
+                      self.send_header("Content-Type", "text/plain")
+                      self.end_headers()
+                      self.wfile.write(b"# Metrics not available yet\n")
+
+              def log_message(self, format, *args):
+                  pass
+
+          print("Serving metrics on port 9099")
+          HTTPServer(("", 9099), Handler).serve_forever()
+        ports:
+        - name: metrics
+          containerPort: 9099
+        volumeMounts:
+        - name: metrics
+          mountPath: /metrics
+          readOnly: true
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+          readOnlyRootFilesystem: true
+        livenessProbe:
+          httpGet:
+            path: /
+            port: metrics
+          initialDelaySeconds: 5
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: metrics
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+      # Sidecar: scrapes RGW Admin API and writes metrics to shared volume
+      - name: scraper
+        image: ghcr.io/OWNER/radosgw-usage-exporter:latest  # Replace OWNER with your GitHub org/user
+        envFrom:
+        - configMapRef:
+            name: rgw-usage-exporter
+        env:
+        - name: ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rook-ceph-object-user-ceph-objectstore-rgw-usage-exporter
+              key: AccessKey
+        - name: RGW_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: ook-ceph-object-user-ceph-objectstore-rgw-usage-exporter
+              key: Endpoint
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rook-ceph-object-user-ceph-objectstore-rgw-usage-exporter
+              key: SecretKey
+        volumeMounts:
+        - name: metrics
+          mountPath: /metrics
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+      volumes:
+      - name: metrics
+        emptyDir:
+          medium: Memory
+          sizeLimit: 64Mi
