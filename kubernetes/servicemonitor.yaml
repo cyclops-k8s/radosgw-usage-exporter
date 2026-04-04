@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rgw-usage-exporter
+  labels:
+    app: rgw-usage-exporter
+spec:
+  selector:
+    matchLabels:
+      app: rgw-usage-exporter
+  endpoints:
+  - port: metrics
+    interval: 120s
+    path: /
+  namespaceSelector:
+    matchNames:
+    - rook-ceph-cluster

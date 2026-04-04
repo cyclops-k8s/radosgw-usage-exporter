@@ -1,0 +1,15 @@
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStoreUser
+metadata:
+  name: rgw-usage-exporter
+spec:
+  store: ceph-objectstore
+  displayName: rgw-usage-exporter
+  clusterNamespace: rook-ceph-cluster
+  capabilities:
+    bucket: "*"
+    buckets: "*"
+    metadata: "*"
+    usage: "*"
+    users: "*"
+    user: "*"

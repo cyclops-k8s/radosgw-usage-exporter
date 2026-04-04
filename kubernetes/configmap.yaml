@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rgw-usage-exporter
+data:
+  STORE: "ceph-objectstore"
+  SCRAPE_INTERVAL: "60"
+  ADMIN_PATH: "admin"
+  TIMEOUT: "60"
