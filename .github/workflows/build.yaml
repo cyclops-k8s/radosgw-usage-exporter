@@ -31,7 +31,7 @@ jobs:
 
     - uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
       with:
-        push: github.ref == 'refs/heads/main'
+        push: ${{ github.ref == 'refs/heads/main' }}
         tags: |
           ${{ vars.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           ${{ vars.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
