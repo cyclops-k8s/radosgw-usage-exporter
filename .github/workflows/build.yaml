@@ -30,11 +30,10 @@ jobs:
         password: ${{ secrets.REGISTRY_PASSWORD }}
 
     - uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
-      if: github.ref == 'refs/heads/main'
       with:
-        push: true
+        push: github.ref == 'refs/heads/main'
         tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          ${{ vars.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          ${{ vars.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
