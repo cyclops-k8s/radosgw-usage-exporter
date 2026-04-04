@@ -38,7 +38,7 @@ spec:
                       self.end_headers()
                       self.wfile.write(data.encode())
                   except FileNotFoundError:
-                      self.send_response(503)
+                      self.send_response(200)
                       self.send_header("Content-Type", "text/plain")
                       self.end_headers()
                       self.wfile.write(b"# Metrics not available yet\n")
@@ -82,7 +82,7 @@ spec:
 
       # Sidecar: scrapes RGW Admin API and writes metrics to shared volume
       - name: scraper
-        image: ghcr.io/OWNER/radosgw-usage-exporter:latest  # Replace OWNER with your GitHub org/user
+        image: quay.io/cyclops-k8s/radosgw-usage-exporter:latest  # Replace OWNER with your GitHub org/user
         envFrom:
         - configMapRef:
             name: rgw-usage-exporter
@@ -95,7 +95,7 @@ spec:
         - name: RGW_ENDPOINT
           valueFrom:
             secretKeyRef:
-              name: ook-ceph-object-user-ceph-objectstore-rgw-usage-exporter
+              name: rook-ceph-object-user-ceph-objectstore-rgw-usage-exporter
               key: Endpoint
         - name: SECRET_KEY
           valueFrom:
